@@ -175,6 +175,15 @@ router.get('/edit/:id', passport.csrfProtection, (req, res, next) => {
         trigger.csrfToken = req.csrfToken();
         trigger.days = Math.round(trigger.seconds / (24 * 3600));
 
+		trigger.units = (trigger.days * 24 * 3600) == trigger.seconds ? 'days':'hours';
+		if (trigger.units == 'hours') {
+			trigger.days = Math.round(trigger.seconds / 3600);
+		}
+		trigger.units = [
+			{unit:'days', name:'Days', selected: trigger.units=='days'}, 
+			{unit:'hours', name:'Hrs.', selected: trigger.units=='hours'}
+		];
+		
         lists.get(trigger.list, (err, list) => {
             if (err || !list) {
                 req.flash('danger', err && err.message || err || _('Could not find selected list'));

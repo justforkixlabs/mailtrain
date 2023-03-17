@@ -58,7 +58,14 @@
                 <input type="number" class="form-control" name="days" id="trigger-days" value="{{days}}" placeholder="1" required>
             </div>
             <div class="col-sm-1">
-                <p class="form-control-static">{{#translate}}days after:{{/translate}}</p>
+				<select name="units" class="form-control">
+					{{#each units}}
+						<option value="{{unit}}" {{#if selected}} selected {{/if}}>{{name}}</option>
+					{{/each}}
+				</select>
+            </div>
+            <div class="col-sm-1">
+                <p class="form-control-static">{{#translate}} after:{{/translate}}</p>
             </div>
         </div>
 
