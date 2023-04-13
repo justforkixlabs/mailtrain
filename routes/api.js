@@ -51,17 +51,34 @@ router.post('/subscribe/:listId', (req, res) => {
         if (!list) {
             return handleErrorResponse(res, log, false, 404, 'Selected listId not found');
         }
-        if (!input.EMAIL) {
-            return handleErrorResponse(res, log, false, 400, 'Missing EMAIL');
+        //console.log(!(typeof input.EMAIL === 'undefined'));
+        if ( !(typeof input.EMAIL === 'undefined') ) {
+            fillEmailOrPhone(input, list, res, true);
         }
-        tools.validateEmail(input.EMAIL, false, err => {
-            if (err) {
-                return handleErrorResponse(res, log, err, 400);
-            }
+        else {
+            fillEmailOrPhone(input, list, res, false);
+            /*return handleErrorResponse(res, log, false, 400, 'EMAIL field is undefined');*/
+        }
+    });
+});
 
-            let subscription = {
-                email: input.EMAIL
-            };
+function fillEmailOrPhone(input, list, res, flag){
+        /*console.log(flag);*/    
+        let subscription = {};
+        /** if email exist validate or else set input.EMAIL empty*/
+        if (flag)
+        {        
+            if (!input.EMAIL) {
+                return handleErrorResponse(res, log, false, 400, 'Missing EMAIL');
+            }
+            tools.validateEmail(input.EMAIL, false, err => {
+                if (err) {
+                    return handleErrorResponse(res, log, err, 400);
+                }
+            });
+            
+            subscription.email =  (input.EMAIL || '').toString().trim();            
+        }
 
             if (input.FIRST_NAME) {
                 subscription.first_name = (input.FIRST_NAME || '').toString().trim();
@@ -95,6 +112,12 @@ router.post('/subscribe/:listId', (req, res) => {
                         }
                     }
                 });
+
+                /**phone is added in the email field if email field is not sent */
+                if ( !flag )
+                {
+                    subscription['email']=subscription['custom_neerajtestaddedinadmin_jwzsqctu'];
+                }
 
                 let meta = {
                     partial: true
@@ -142,9 +165,7 @@ router.post('/subscribe/:listId', (req, res) => {
                     });
                 }
             });
-        });
-    });
-});
+}
 
 router.post('/unsubscribe/:listId', (req, res) => {
     let input = {};
