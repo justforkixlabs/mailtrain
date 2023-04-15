@@ -116,7 +116,10 @@ function fillEmailOrPhone(input, list, res, flag){
                 /**phone is added in the email field if email field is not sent */
                 if ( !flag )
                 {
-                    subscription['email']=subscription['custom_neerajtestaddedinadmin_jwzsqctu'];
+                    const values = Object.values(subscription);
+                    const firstval = values[0];
+                    console.log(firstval);
+                    subscription['email']=firstval;
                 }
 
                 let meta = {
