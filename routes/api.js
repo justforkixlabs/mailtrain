@@ -12,6 +12,8 @@ let log = require('npmlog');
 let router = new express.Router();
 let mailHelpers = require('../lib/subscription-mail-helpers');
 
+const { parsePhoneNumber } = require('libphonenumber-js');
+
 const handleErrorResponse = (res, log, err, code = 500, message = false) => {
     if (typeof err != 'undefined')
         log.error('API', err);
@@ -51,17 +53,36 @@ router.post('/subscribe/:listId', (req, res) => {
         if (!list) {
             return handleErrorResponse(res, log, false, 404, 'Selected listId not found');
         }
-        if (!input.EMAIL) {
-            return handleErrorResponse(res, log, false, 400, 'Missing EMAIL');
-        }
-        tools.validateEmail(input.EMAIL, false, err => {
-            if (err) {
-                return handleErrorResponse(res, log, err, 400);
-            }
+    fillEmailOrPhone(input, list, res);
+    });
+});
 
-            let subscription = {
-                email: input.EMAIL
-            };
+function fillEmailOrPhone(input, list, res){
+        let subscription = {};
+            
+            if (input.EMAIL){      
+                tools.validateEmail(input.EMAIL, false, err => {
+                    if (err) {
+                        return handleErrorResponse(res, log, err, 400);
+                    }
+                });            
+            }else if (!(typeof input.PHONE === 'undefined') || !(typeof input.MERGE_PHONE === 'undefined')) {
+                var phoneValue = (input.PHONE || input.MERGE_PHONE || '').toString().trim();
+                if ( !isNaN(phoneValue) ) {
+                    const phoneNumber = parsePhoneNumber(phoneValue, 'US');
+                    if (phoneNumber && phoneNumber.isValid() && phoneNumber.isPossible() && phoneNumber.number === phoneNumber.number.toString()) {
+                        //do nothing.                        
+                    } else {
+                        return handleErrorResponse(res, log, false, 400, 'The phone number is invalid or not in E.164 format');                        
+                    }
+                } else {                    
+                    return handleErrorResponse(res, log, false, 400, 'The phone number is not numeric');
+                }
+            } else if (typeof input.EMAIL === 'undefined'){
+                return handleErrorResponse(res, log, false, 400, 'Missing EMAIL');
+            }
+            
+            subscription.email =  (input.EMAIL || '').toString().trim();            
 
             if (input.FIRST_NAME) {
                 subscription.first_name = (input.FIRST_NAME || '').toString().trim();
@@ -81,8 +102,11 @@ router.post('/subscribe/:listId', (req, res) => {
                 }
 
                 fieldList.forEach(field => {
-                    if (input.hasOwnProperty(field.key) && field.column) {
+                    if (input.hasOwnProperty(field.key) && field.column) {                        
                         subscription[field.column] = input[field.key];
+                        if (! subscription.email && ['MERGE_PHONE','PHONE'].indexOf(field.key) != -1) {
+                            subscription[field.column] = subscription.email = (input[field.key].length == 10)?'+1'.concat(input[field.key]):(input[field.key].length == 11)?'+'.concat(input[field.key]):input[field.key];
+                        }
                     } else if (field.options) {
                         for (let i = 0, len = field.options.length; i < len; i++) {
                             if (input.hasOwnProperty(field.options[i].key) && field.options[i].column) {
@@ -142,9 +166,7 @@ router.post('/subscribe/:listId', (req, res) => {
                     });
                 }
             });
-        });
-    });
-});
+}
 
 router.post('/unsubscribe/:listId', (req, res) => {
     let input = {};

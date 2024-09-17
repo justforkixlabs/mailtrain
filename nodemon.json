@@ -1,0 +1,5 @@
+{
+  "ignore": ["node_modules/*"],
+  "exec": "NODE_ENV=production npm start"
+}
+
